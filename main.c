@@ -1,15 +1,20 @@
+/**
+ * @author David Salegna, Jonathan Bogue, Noah Conn, Gian Garnica, Derik Schmitz
+ * @brief This program manages students in a course. Files can be created, read, downloaded, and loaded
+ * @date 2023-03-06
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #define NAME_LENGTH 40
 
-//PRE01-C: Parentheses are properly placed around macro parameter names
-//PRE02-C: Macro replacement list is properly parenthesized
-//PRE11-C: Macro definition does not conclude with a semicolon
+// PRE01-C: Parentheses are properly placed around macro parameter names
+// PRE02-C: Macro replacement list is properly parenthesized
+// PRE11-C: Macro definition does not conclude with a semicolon
 #define CALCULATE_COST(x, y) ((x) * (y))
 
-typedef struct student
-{
+typedef struct student {
     char name[NAME_LENGTH];
     int gender;
     int age;
@@ -19,19 +24,17 @@ void menu(int flag, int *num);
 void read(student *p, int *num);
 void init(int *num);
 void show(student *p, int *num);
-//void showline();
 void open(student *p, int *num, int flag);
 void save(student *p, int *num);
 void cost(student *p, int *num);
 void logUser();
 void *erase(void *pointer);
 
-
 student *data = NULL;
 
-int main()
-{
-    //DCL30-C: Declares following variables within execution of program but not outside of it
+
+int main() {
+    // DCL30-C: Declares following variables within execution of program but not outside of it
     int num = 0;
     int flag = 0;
 
@@ -40,8 +43,13 @@ int main()
     return 0;
 }
 
-void menu(int flag, int *num)
-{
+/**
+ * @brief Prompts the user to choose a function of the program
+ * 
+ * @param flag 
+ * @param num 
+ */
+void menu(int flag, int *num) {
     int choice = 0;
 
     printf("\nWelcome to the class management system!\n");
@@ -57,9 +65,8 @@ void menu(int flag, int *num)
         switch (choice)
         {
             case 1:
-                printf("Enter the number of students in the class: ");
+                printf("\nEnter the number of students in the class: ");
                 scanf("%d", num);
-                printf("\n");
                 init(num);
                 read(data, num);
                 break;
@@ -76,10 +83,10 @@ void menu(int flag, int *num)
                 cost(data, num);
                 break;
             case 6:
-                printf("Quitting application...");
+                printf("\nQuitting application...");
                 break;
             default:
-                printf("\033[0;31mError: Cannot identify your input!\033[0m");
+                printf("\nError. Cannot identify your input!\n");
                 break;
         }
         printf("\n");
@@ -87,9 +94,13 @@ void menu(int flag, int *num)
     exit(0);
 }
 
-void init(int *num)
-{
-    //MEM35-C: Sufficient memory is allocated for data based on size of student
+/**
+ * @brief 
+ * 
+ * @param num 
+ */
+void init(int *num) {
+    // MEM35-C: Sufficient memory is allocated for data based on size of student
     data = (student *)malloc((*num) * sizeof(student));
     // MSC15-C: In loops such as this one, rather than checking if the current element has gone beyond its bounds (which could easily
     // lead to undefined behavior), the element is checked to ensure it remains within its bounds, ending the loop upon reaching said bounds.
@@ -104,11 +115,16 @@ void init(int *num)
     read(data, num);
 }
 
-void read(student *p, int *num)
-{
+/**
+ * @brief 
+ * 
+ * @param p 
+ * @param num 
+ */
+void read(student *p, int *num) {
     for (int i = 0; i < *num; i++)
     {
-        printf("\tStudent Name: ");
+        printf("\n\tStudent Name: ");
         scanf("%s", p->name);
         printf("\tStudent Gender [1=Male, 2=Female, 3=Other]: ");
         scanf("%d", &(p->gender));
@@ -117,32 +133,52 @@ void read(student *p, int *num)
         printf("Student added! %d students left to add.\n", *num - i - 1);
         p++;
     }
-    printf("All students have been added.\n");
+    printf("\nAll students have been added.\n");
     menu(1, num);
 }
 
-void show(student *p, int *num)
-{
-    for (int i = 0; i < *num; i++)
-    {
-        printf("\tStudent Name: %s\n", p->name);
-        if (p->gender == 1)
-            printf("\tGender: Male\n");
-        else if (p->gender == 2)
-            printf("\tGender: Female\n");
-        else
-            printf("\tGender: Other\n");
-        printf("\tAge: %d\n", p->age);
-        p++;
+/**
+ * @brief Outputs the current class data
+ * 
+ * @param data The student data
+ * @param num 
+ */
+void show(student *student_ptr, int *num) {
+    if (*num < 1) {
+        printf("\nNo student data to display. You may enter new, or load existing data.\n");
+    } else {
+        for (int i = 0; i < *num; i++)
+        {
+            printf("\tStudent Name: %s\n", student_ptr->name);
+        
+            if (student_ptr->gender == 1) {
+                printf("\tGender: Male\n");
+            } else if (student_ptr->gender == 2) {
+                printf("\tGender: Female\n");
+            } else {
+                printf("\tGender: Other\n");
+            }
+
+            printf("\tAge: %d\n", student_ptr->age);
+        
+            // Increment student
+            student_ptr++;
+        }
     }
-    menu(1, num);
+    
+    menu(1, num); // Return to user prompt
 }
 
-void save(student *p, int *num)
-{
+/**
+ * @brief 
+ * 
+ * @param p 
+ * @param num 
+ */
+void save(student *p, int *num) {
     FILE *fp = fopen("class_list.txt", "w+");
-    if (fp)
-    {
+    
+    if (fp) {
         fwrite(p, sizeof(student), *num, fp);
         fclose(fp);
     }
@@ -150,43 +186,59 @@ void save(student *p, int *num)
     menu(1, num);
 }
 
-void open(student *p, int *num, int flag)
-{
+/**
+ * @brief 
+ * 
+ * @param p 
+ * @param num 
+ * @param flag 
+ */
+void open(student *p, int *num, int flag) {
     *num = 0;
     FILE *fp = fopen("class_list.txt", "r");
-    if (fp)
-    {
+    if (fp) {
         fseek(fp, 0L, SEEK_END);
         long size = ftell(fp);
         *num = size / (sizeof(student));
         fseek(fp, 0L, SEEK_SET);
 
         if (flag == 1)
-            free(data); //MEM34-C: The data variable was dynamically allocated and thus can be freed
+            free(data); // MEM34-C: The data variable was dynamically allocated and thus can be freed
         data = (student *)malloc((*num) * sizeof(student));
         p = data;
 
         fread(data, sizeof(student), *num, fp);
         printf("Class of %d students loaded.\n", *num);
     }
-    else
+    else {
         printf("Read Failed!\n");
+    }
+
     menu(1, num);
 }
 
+/**
+ * @brief 
+ * 
+ * @param p 
+ * @param num 
+ */
 void cost(student *p, int *num) {
     int *costPer = malloc(sizeof(int));
     printf("\tPlease enter the cost per student: ");
     scanf("%d", &costPer);
     printf("Total cost will be: %d", CALCULATE_COST(*costPer, *num));
-    free(costPer); //MEM30-C: Since costPer is being freed here, it will not be accessed anymore
+    free(costPer); // MEM30-C: Since costPer is being freed here, it will not be accessed anymore
     menu(1, num);
 }
 
 // MSC41-C: This code to log the last user is erased immediately after the file it is written to is closed, ensuring its security
 // (at least within the application).
-void logUser()
-{
+/**
+ * @brief 
+ * 
+ */
+void logUser() {
     char code[20];
 
     printf("Enter a unique code that is 20 characters or less to log who last used the system (only admins will have access to that file): ");
@@ -194,20 +246,26 @@ void logUser()
 
     FILE *fp = fopen("user_log.txt", "w+");
 
-    if (fp)
-    {
+    if (fp) {
         fwrite(code, sizeof(code), 1, fp);
         fclose(fp);
     }
     erase(code);
 }
 
-void *erase(void *pointer)
-{
+/**
+ * @brief 
+ * 
+ * @param pointer 
+ * @return void* 
+ */
+void *erase(void *pointer) {
     int sizeToRemove = sizeof(pointer);
     volatile unsigned char *p = pointer;
     
-    while (sizeToRemove--)
-       *p++ = 0;
+    while (sizeToRemove--) 
+    {
+        *p++ = 0;
+    }
     return pointer;
 }

@@ -1,0 +1,5 @@
+Bugs:
+    * Calculating cost with no student data results in a segmentation fault
+    * I hit ESC and it got stuck in an infinite loop.
+Questions:
+    * What does erase do? Would free() do the same thing?
