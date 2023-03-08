@@ -15,7 +15,7 @@
 #define CALCULATE_COST(x, y) ((x) * (y))
 
 typedef struct student {
-    char name[NAME_LENGTH];
+    char name[NAME_LENGTH]; // STR30-C: Uses array representation in case the name needs to be modified
     int gender;
     int age;
 } student;
@@ -32,7 +32,11 @@ void *erase(void *pointer);
 
 student *data = NULL;
 
-
+/**
+ * @brief Begins the program
+ * 
+ * @return int Returns 0 if the program ran an quit successfully
+ */
 int main() {
     // DCL30-C: Declares following variables within execution of program but not outside of it
     int num = 0;
@@ -46,8 +50,8 @@ int main() {
 /**
  * @brief Prompts the user to choose a function of the program
  * 
- * @param flag 
- * @param num 
+ * @param flag Indicates whether data already exists (and needs to be freed)
+ * @param num The number of students in the class
  */
 void menu(int flag, int *num) {
     int choice = 0;
@@ -95,9 +99,9 @@ void menu(int flag, int *num) {
 }
 
 /**
- * @brief 
+ * @brief Allocates sufficient data for num students
  * 
- * @param num 
+ * @param num The number of students in the class
  */
 void init(int *num) {
     // MEM35-C: Sufficient memory is allocated for data based on size of student
@@ -116,10 +120,10 @@ void init(int *num) {
 }
 
 /**
- * @brief 
+ * @brief Fills students information using data provided by the user
  * 
- * @param p 
- * @param num 
+ * @param p The pointer to the first of num student structs
+ * @param num The number of students in the class
  */
 void read(student *p, int *num) {
     for (int i = 0; i < *num; i++)
@@ -140,8 +144,8 @@ void read(student *p, int *num) {
 /**
  * @brief Outputs the current class data
  * 
- * @param data The student data
- * @param num 
+ * @param student_ptr The pointer to the first of num student structs
+ * @param num The number of students in the class
  */
 void show(student *student_ptr, int *num) {
     if (*num < 1) {
@@ -149,7 +153,7 @@ void show(student *student_ptr, int *num) {
     } else {
         for (int i = 0; i < *num; i++)
         {
-            printf("\tStudent Name: %s\n", student_ptr->name);
+            printf("\nStudent Name: %s\n", student_ptr->name);
         
             if (student_ptr->gender == 1) {
                 printf("\tGender: Male\n");
@@ -170,10 +174,10 @@ void show(student *student_ptr, int *num) {
 }
 
 /**
- * @brief 
+ * @brief Saves the student data to class_list.txt
  * 
- * @param p 
- * @param num 
+ * @param p The pointer to the student data
+ * @param num The number of students in the class
  */
 void save(student *p, int *num) {
     FILE *fp = fopen("class_list.txt", "w+");
@@ -187,11 +191,11 @@ void save(student *p, int *num) {
 }
 
 /**
- * @brief 
+ * @brief Loads in student data from class_list.txt
  * 
- * @param p 
- * @param num 
- * @param flag 
+ * @param p The pointer to the student data
+ * @param num The number of students in the class
+ * @param flag Flag to indicate if data needs to be freed
  */
 void open(student *p, int *num, int flag) {
     *num = 0;
@@ -226,7 +230,7 @@ void open(student *p, int *num, int flag) {
 void cost(student *p, int *num) {
     int *costPer = malloc(sizeof(int));
     printf("\tPlease enter the cost per student: ");
-    scanf("%d", &costPer);
+    scanf("%d", costPer);
     printf("Total cost will be: %d", CALCULATE_COST(*costPer, *num));
     free(costPer); // MEM30-C: Since costPer is being freed here, it will not be accessed anymore
     menu(1, num);
