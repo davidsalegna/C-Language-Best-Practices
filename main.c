@@ -90,7 +90,7 @@ void menu(int flag, int *num) {
                 printf("\nQuitting application...");
                 break;
             default:
-                printf("\nError. Cannot identify your input!\n");
+                printf("\nInvalid input. Please enter an integer (1-6).\n");
                 break;
         }
         printf("\n");
@@ -153,7 +153,7 @@ void show(student *student_ptr, int *num) {
     } else {
         for (int i = 0; i < *num; i++)
         {
-            printf("\nStudent Name: %s\n", student_ptr->name);
+            printf("\n\tStudent Name: %s\n", student_ptr->name);
         
             if (student_ptr->gender == 1) {
                 printf("\tGender: Male\n");
@@ -200,7 +200,7 @@ void save(student *p, int *num) {
 void open(student *p, int *num, int flag) {
     *num = 0;
     FILE *fp = fopen("class_list.txt", "r");
-    if (fp) {
+    if (fp) { // ERR33-C: If fopen fails, the user is alerted and the program returns to the prompt
         fseek(fp, 0L, SEEK_END);
         long size = ftell(fp);
         *num = size / (sizeof(student));
@@ -208,14 +208,14 @@ void open(student *p, int *num, int flag) {
 
         if (flag == 1)
             free(data); // MEM34-C: The data variable was dynamically allocated and thus can be freed
-        data = (student *)malloc((*num) * sizeof(student));
+        data = (student *) malloc((*num) * sizeof(student));
         p = data;
 
         fread(data, sizeof(student), *num, fp);
-        printf("Class of %d students loaded.\n", *num);
+        printf("\nClass of %d students loaded.\n", *num);
     }
     else {
-        printf("Read Failed!\n");
+        printf("\nRead Failed!\n");
     }
 
     menu(1, num);
@@ -228,6 +228,7 @@ void open(student *p, int *num, int flag) {
  * @param num 
  */
 void cost(student *p, int *num) {
+    // TODO (Noah) add Euro version
     int *costPer = malloc(sizeof(int));
     printf("\tPlease enter the cost per student: ");
     scanf("%d", costPer);
