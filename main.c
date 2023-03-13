@@ -1,13 +1,13 @@
 /**
- *@author David Salegna, Jonathan Bogue, Noah Conn, Gian Garnica, Derik Schmitz
- *@brief This program manages students in a course. Files can be created, read, downloaded, and loaded
- *@date 2023-03-06
+ * @author David Salegna, Jonathan Bogue, Noah Conn, Gian Garnica, Derik Schmitz
+ * @brief This program manages students in a course. Files can be created, read, downloaded, and loaded
+ * @date 2023-03-06
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#define NAME_LENGTH 40
+#define NAME_LENGTH 10
 
 // DCL36-C: This static double is declared with static external linkage to be used in a later macro function and cannot change
 static double studentTax = 1.27;
@@ -68,14 +68,20 @@ int main()
  */
 void menu(int flag, int *num)
 {
-    int choice = 0;
+    int choice;
+    char num_buffer[4];
+    int len;
+    char c;
 
     printf("\nWelcome to the class management system!\n");
     do
     {
-        printf("\t1) Add Students\n\t2) View Class\n\t3) Save Class as File\n\t4) Load Class File\n\t5) Cost of Class\n\t6) Quit\nEnter Option: ");
+        choice = -1;
+        printf("\t1) Add Students\n\t2) View Class\n\t3) Save Class as File\n\t4) Load Class File\n\t5) Calculate Cost of Class\n\t6) Quit\nEnter Option: ");
 
-        scanf("%d", &choice);
+        fgets(num_buffer, 2, stdin);
+        while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
+        sscanf(num_buffer, "%d", &choice); // Convert char to integer
 
         // MSC20-C: Switch statement does not transition into complex blocks, instead performs simplistic instructions for each case.
         // MSC01-C: Logical completeness in break statements for cases as appropriate, also seen in if statements with matching else statements.
@@ -84,7 +90,16 @@ void menu(int flag, int *num)
         {
         case 1:
             printf("\nEnter the number of students in the class: ");
-            scanf("%d", num);
+            if ((len = strlen(fgets(num_buffer, 4, stdin))) == 3) 
+            {
+                while ((c = getchar()) != '\n' && c != EOF);
+            }
+            if (sscanf(num_buffer, "%d", num) != 1 || *num < 1) 
+            {
+                *num = 0;
+                printf("\nERROR: Invalid input. Input must be an integer in range (1-999).\nWARNING: Numbers above this range will be truncated.\nERROR: Add Students function failed. Please try again.\n");
+                break;
+            }
             init(num);
             read(data, num);
             break;
@@ -104,7 +119,7 @@ void menu(int flag, int *num)
             printf("\nQuitting application...");
             break;
         default:
-            printf("\nInvalid input. Please enter an integer (1-6).\n");
+            printf("\nERROR: Invalid input. Please enter an integer (1-6).\nWARNING: Integers greater than 1 digit will be truncated.\n");
             break;
         }
         printf("\n");
@@ -142,18 +157,54 @@ void init(int *num)
  */
 void read(student *p, int *num)
 {
+    int len = 0;
+    char num_buffer[3]; // Used to accept gender and age data (<= 2 digits + \n)
+    char c; // Used to flush stdin on attempted buffer overflow
+    int readFailed = 0;
+
     for (int i = 0; i < *num; i++)
     {
+        //while ((c = getchar()) != '\n' && c != EOF);
+        
         printf("\n\tStudent Name: ");
-        scanf("%s", p->name);
+        // If the entire buffer is used, name may be truncated and input may need to be flushed
+        if ((len = strlen(fgets(p->name, NAME_LENGTH, stdin))) == NAME_LENGTH - 1) 
+        {
+            printf("\nWARNING: Potential overflow! Student's name may be truncated. Name's should be less than %d characters long.\n", NAME_LENGTH);
+            while ((c = getchar()) != '\n' && c != EOF);
+        }
+        
         printf("\tStudent Gender [1=Male, 2=Female, 3=Other]: ");
-        scanf("%d", &(p->gender));
+        fgets(num_buffer, 2, stdin);
+        while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
+
+        if (sscanf(num_buffer, "%d", &(p->gender)) != 1 || p->gender < 1 || p->gender > 3) 
+        {
+            printf("\nERROR: Ivalid input. Input should be an integer (1-3).\nWARNING: Integers greater than 1 digit will be truncated.\nERROR: Add Students function failed. Please try again.\n");
+            *num = 0; // Number of students set to zero, making the data unreadable
+            readFailed = 1;
+            break;
+        } 
+
         printf("\tStudent Age: ");
-        scanf("%d", &(p->age));
-        printf("Student added! %d students left to add.\n", *num - i - 1);
+        if ((len = strlen(fgets(num_buffer, 3, stdin))) == 2 && num_buffer[1] != '\n') 
+        {
+            while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
+        }
+        if (sscanf(num_buffer, "%d", &(p->age)) != 1 || p->age < 0) 
+        {
+            printf("\nERROR: Ivalid input. Input should have be a positive integer (1-99).\nWARNING: Integers greater than 1 digit will be truncated.\nERROR: Add Students function failed. Please try again.\n");
+            *num = 0; // Number of students set to zero, making the data unreadable
+            readFailed = 1;
+            break;
+        } 
+
+        printf("\nStudent added! %d students left to add.\n", *num - i - 1);
         p++;
     }
-    printf("\nAll students have been added.\n");
+    if (readFailed != 1) {
+        printf("All students have been added.\n");
+    }
     menu(1, num);
 }
 
@@ -213,7 +264,7 @@ void save(student *p, int *num)
         fwrite(p, sizeof(student), *num, fp);
         fclose(fp);
     }
-    printf("Class Saved.\n");
+    printf("\nClass Saved.\n");
     menu(1, num);
 }
 
@@ -259,6 +310,8 @@ void open(student *p, int *num, int flag)
  */
 void cost(int *num)
 {
+    char num_buffer[6];
+    char c;
     if (*num < 1)
     {
         printf("\nNo student data to calculate. You may enter new, or load existing data.\n");
@@ -266,8 +319,15 @@ void cost(int *num)
     else
     {
         int *costPer = malloc(sizeof(int));
-        printf("\tPlease enter the cost per student: $");
-        scanf("%d", costPer);
+        printf("\n\tPlease enter the cost per student: $");
+        if (strlen(fgets(num_buffer, 6, stdin)) == 5) {
+            while ((c = getchar()) != '\n' && c != EOF);
+        }
+        if (sscanf(num_buffer, "%d", costPer) != 1 || *costPer < 0) 
+        {
+            printf("\nERROR: Ivalid input. Input should have been an integer.\nWARNING: Integers greater than 5 digits will be truncated.\nERROR: Calculate Cost of Class function failed. Please try again.\n");
+            return;
+        } 
         printf("\tTotal cost will be: $%d\n", CALCULATE_COST(*costPer, *num));
         CALCULATE_TAX(*costPer, *num); // Make call to multi-statement macro to calculate taxes
         // MEM34-C: The costPer variable was dynamically allocated and thus can be freed
