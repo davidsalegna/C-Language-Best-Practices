@@ -1,6 +1,6 @@
 /**
  * @author David Salegna, Jonathan Bogue, Noah Conn, Gian Garnica, Derik Schmitz
- * @brief This program manages students in a course. Files can be created, read, downloaded, and loaded
+ * @brief This program manages students in a course. Files can be created, addStudents, downloaded, and loaded
  * @date 2023-03-06
  */
 
@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define NAME_LENGTH 10
+#define CLASS_CODE_LENGTH 10
 
 // DCL36-C: This static double is declared with static external linkage to be used in a later macro function and cannot change
 static double student_tax = 27;
@@ -19,11 +20,11 @@ static double student_tax = 27;
 #define CALCULATE_COST(x, y) ((x) * (y))
 
 // PRE10-C: Multistatement Macro definition is wrapped in a do-while loop so it can be used as a single line statement
-#define CALCULATE_TAX(x, y)                              \
-    do                                                   \
-    {                                                    \
-        double cost_total = (double)CALCULATE_COST(x, y); \
-        printf("%.2f", (cost_total * (1 + (student_tax / 100))));          \
+#define CALCULATE_TAX(x, y)                                       \
+    do                                                            \
+    {                                                             \
+        double cost_total = (double)CALCULATE_COST(x, y);         \
+        printf("%.2f", (cost_total * (1 + (student_tax / 100)))); \
     } while (0)
 
 typedef struct student
@@ -33,17 +34,22 @@ typedef struct student
     int age;
 } student;
 
-void menu(int flag, int *num);
-void read(student *p, int *num);
+void prompt(int flag, int *num);
+void createClass(student *p, int *num);
+void addStudents(student *p, int *num);
 void init(int *num);
-void show(student *p, int *num);
-void open(student *p, int *num, int flag);
+void viewClassDetails(int *num);
+void viewClassList(student *p, int *num);
+void load(student *p, int *num, int flag);
 void save(student *p, int *num);
-void cost(int *num);
+void calculateCost(int *num);
 void logUser();
 void *erase(void *pointer);
 
 student *data = NULL;
+char category[CLASS_CODE_LENGTH];
+char course_num[CLASS_CODE_LENGTH];
+char section_num[CLASS_CODE_LENGTH];
 // STR11-C: No specified dimensions so string literal assignment will automatically include a null terminator
 char organization_name[] = "ISU IT"; 
 
@@ -59,7 +65,7 @@ int main()
     int flag = 0;
 
     logUser();
-    menu(flag++, &num);
+    prompt(flag++, &num);
     return 0;
 }
 
@@ -69,22 +75,21 @@ int main()
  * @param flag Indicates whether data already exists (and needs to be freed)
  * @param num The number of students in the class
  */
-void menu(int flag, int *num)
+void prompt(int flag, int *num)
 {
     int choice;
     // STR30-C: Uses array representation because it will be modified
     // STR11-C: Array is not initialized to a string literal, so explicit dimensions are valid
-    char num_buffer[4];
-    int len;    // Length of the input string
-    char c;     // Character used to flush stdin
+    char num_buffer[2];
+    char c; // Character used to flush stdin
 
     printf("\nWelcome to the %s class management system!\n", organization_name);
     do
     {
         choice = -1;
-        printf("\t1) Add Students\n\t2) View Class\n\t3) Save Class as File\n\t4) Load Class File\n\t5) Calculate Cost of Class\n\t6) Quit\nEnter Option: ");
+        printf("\t1) Create Class\n\t2) View Class Details\n\t3) View Student List\n\t4) Save Class File\n\t5) Load Class File\n\t6) Calculate Cost of Class\n\t7) Quit\nEnter Option: ");
 
-        /* STR31-C: All uses of fgets use the middle variable to know how many characters to read
+        /* STR31-C: All uses of fgets use the middle variable to know how many characters to addStudents
                     In all occurences, it is at most the length of the buffer (fgets will stop just 
                     before using the whole buffer)
         */
@@ -99,43 +104,114 @@ void menu(int flag, int *num)
         switch (choice)
         {
         case 1:
-            printf("\nEnter the number of students in the class: ");
-            // STR32-C: fgets ensures only as many as a 3-digit number can be entered into the array of size 4
-            if ((len = strlen(fgets(num_buffer, 4, stdin))) == 3 && num_buffer[2] != '\n') 
-            {
-                while ((c = getchar()) != '\n' && c != EOF);
-            }
-            if (sscanf(num_buffer, "%d", num) != 1 || *num < 1) 
-            {
-                *num = 0;
-                printf("\nERROR: Invalid input. Input must be an integer in range (1-999).\nWARNING: Numbers above this range will be truncated.\nERROR: Add Students function failed. Please try again.\n");
-                break;
-            }
-            init(num);
-            read(data, num);
+            createClass(data, num);
             break;
         case 2:
-            show(data, num);
-            // ***Fallthrough intended here.
+            viewClassDetails(num);
+            break;
         case 3:
+            viewClassList(data, num);
+            // ***Fallthrough intended here.
+        case 4:
             save(data, num);
             break;
-        case 4:
-            open(data, num, flag);
-            break;
         case 5:
-            cost(num);
+            load(data, num, flag);
             break;
         case 6:
+            calculateCost(num);
+            break;
+        case 7:
             printf("\nQuitting application...");
             break;
         default:
-            printf("\nERROR: Invalid input. Please enter an integer (1-6).\nWARNING: Integers greater than 1 digit will be truncated.\n");
+            printf("\nERROR: Invalid input. Please enter an integer (1-7).\nWARNING: Integers greater than 1 digit will be truncated.\n");
             break;
         }
         printf("\n");
-    } while (choice != 6);
+    } while (choice != 7);
     exit(0);
+}
+
+/**
+ * @brief Creates a class and gets the number of students and class details
+ * 
+ * @param p The pointer to the first of num student structs
+ * @param num The number of students in the class
+ */
+void createClass(student *p, int *num) {
+    int max_len = (CLASS_CODE_LENGTH * 3) + 3;
+    char num_buffer[4];
+    char class_buffer[max_len];
+    int len; // Length of the input string
+    char c;  // Character used to flush stdin
+
+    memset(class_buffer, 0, max_len * sizeof(char));
+    memset(category, 0, CLASS_CODE_LENGTH * sizeof(char));
+    memset(course_num, 0, CLASS_CODE_LENGTH * sizeof(char));
+    memset(section_num, 0, CLASS_CODE_LENGTH * sizeof(char));
+
+    printf("\nClass information is given in the format CATEGORY-COURSE-SECTION. Example: IT-355-001\n\nEnter class information: ");
+    if ((len = strlen(fgets(class_buffer, max_len, stdin))) == max_len - 1 && num_buffer[2] != '\n') 
+    {
+        while ((c = getchar()) != '\n' && c != EOF);
+    }
+    class_buffer[len - 1] = '\0'; // Trim newline
+
+    
+    // STR06-C: Copy of buffer created so strtok doesn't overwrite original
+    char buffer_copy[max_len];
+    strcpy(buffer_copy, class_buffer);
+    
+    // Parsing information
+    char *delim = "-";
+    char *token = strtok(buffer_copy, delim);
+    int index = 0;
+    int tkn_len = 0;
+    int tkn_count = 0;
+
+    for (int i = 0; token != NULL && i < 3; i++) {
+        tkn_count++;
+        tkn_len = strlen(token);
+        if (tkn_len > CLASS_CODE_LENGTH - 1) {
+            printf("\nERROR: Invalid input. Fields must be fewer than %d characters long.\nCreate Class function failed. Please try again.\n", CLASS_CODE_LENGTH);
+            return;
+        } else {
+            // STR03-C: Arrays are given enough memory so that strcpy does not truncate the string
+            switch(tkn_count) {
+            case 1:
+                strcpy(category, token);
+                break; 
+            case 2:
+                strcpy(course_num, token);
+                break;
+            case 3:
+                strcpy(section_num, token);
+                break;
+            }
+        }
+        index += tkn_len + 1;
+        token = strtok(NULL, delim);
+    }
+    if (tkn_count != 3) {
+        printf("\nERROR: Invalid input. You must provide three, and only three fields.\nERROR: Create Class function failed. Please try again.\n");
+        return;
+    }
+
+    printf("\nEnter the number of students in the class: ");
+    // STR32-C: fgets ensures only as many as a 3-digit number can be entered into the array of size 4
+    if ((len = strlen(fgets(num_buffer, 4, stdin))) == 3 && num_buffer[2] != '\n') 
+    {
+        while ((c = getchar()) != '\n' && c != EOF);
+    }
+    if (sscanf(num_buffer, "%d", num) != 1 || *num < 1) 
+    {
+        *num = 0;
+        printf("\nERROR: Invalid input. Input must be an integer in range (1-999).\nWARNING: Numbers above this range will be truncated.\nERROR: Add Students function failed. Please try again.\n");
+        return;
+    }
+    init(num);
+    addStudents(data, num);
 }
 
 /**
@@ -157,7 +233,7 @@ void init(int *num)
         data++;
     }
     data -= *num;
-    read(data, num);
+    addStudents(data, num);
 }
 
 /**
@@ -166,7 +242,7 @@ void init(int *num)
  * @param p The pointer to the first of num student structs
  * @param num The number of students in the class
  */
-void read(student *p, int *num)
+void addStudents(student *p, int *num)
 {
     int len = 0;
     char num_buffer[3]; // Used to accept gender and age data (<= 2 digits + \n)
@@ -218,7 +294,19 @@ void read(student *p, int *num)
     if (read_failed != 1) {
         printf("All students have been added.\n");
     }
-    menu(1, num);
+    prompt(1, num);
+}
+
+void viewClassDetails(int *num) {
+    if (*num < 1)
+    {
+        printf("\nERROR: No class data to display. You may enter new, or load existing data.\n");
+    }
+    else
+    {
+        printf("\nCategory: %s\nCourse:   %s\nSection:  %s\n", category, course_num, section_num);
+    }
+    prompt(1, num);
 }
 
 /**
@@ -227,11 +315,11 @@ void read(student *p, int *num)
  * @param student_ptr The pointer to the first of num student structs
  * @param num The number of students in the class
  */
-void show(student *student_ptr, int *num)
+void viewClassList(student *student_ptr, int *num)
 {
     if (*num < 1)
     {
-        printf("\nNo student data to display. You may enter new, or load existing data.\n");
+        printf("\nERROR: No student data to display. You may enter new, or load existing data.\n");
     }
     else
     {
@@ -259,7 +347,7 @@ void show(student *student_ptr, int *num)
         }
     }
 
-    menu(1, num); // Return to user prompt
+    prompt(1, num); // Return to user prompt
 }
 
 /**
@@ -270,15 +358,19 @@ void show(student *student_ptr, int *num)
  */
 void save(student *p, int *num)
 {
-    FILE *fp = fopen("class_list.txt", "w+");
+    FILE *fp = fopen("class_list", "w+");
 
     if (fp)
     {
+        fwrite(num, sizeof(int), 1, fp);
         fwrite(p, sizeof(student), *num, fp);
+        fwrite(category, sizeof(char), CLASS_CODE_LENGTH, fp);
+        fwrite(course_num, sizeof(char), CLASS_CODE_LENGTH, fp);
+        fwrite(section_num, sizeof(char), CLASS_CODE_LENGTH, fp);
         fclose(fp);
     }
     printf("\nClass Saved.\n");
-    menu(1, num);
+    prompt(1, num);
 }
 
 /**
@@ -288,31 +380,36 @@ void save(student *p, int *num)
  * @param num The number of students in the class
  * @param flag Flag to indicate if data needs to be freed
  */
-void open(student *p, int *num, int flag)
+void load(student *p, int *num, int flag)
 {
     *num = 0;
-    FILE *fp = fopen("class_list.txt", "r");
+    FILE *fp = fopen("class_list", "r");
     if (fp) // ERR33-C: If fopen fails, the user is alerted and the program returns to the prompt 
     { 
-        fseek(fp, 0L, SEEK_END);
-        long size = ftell(fp);
-        *num = size / (sizeof(student));
-        fseek(fp, 0L, SEEK_SET);
+        fread(num, sizeof(int), 1, fp);
+        // fseek(fp, 0L, SEEK_END);
+        // long size = ftell(fp);
+        // *num = size / (sizeof(student));
+        // fseek(fp, 0L, SEEK_SET);
 
-        if (flag == 1)
+        if (flag == 1) {
             free(data); // MEM34-C: The data variable was dynamically allocated and thus can be freed
+        }
         data = (student *) malloc((*num) * sizeof(student));
         p = data;
-
+        
         fread(data, sizeof(student), *num, fp);
+        fread(category, sizeof(char), CLASS_CODE_LENGTH, fp);
+        fread(course_num, sizeof(char), CLASS_CODE_LENGTH, fp);
+        fread(section_num, sizeof(char), CLASS_CODE_LENGTH, fp);
         printf("\nClass of %d students loaded.\n", *num);
     }
     else
     {
-        printf("Read Failed!\n");
+        printf("\nERROR: Read Failed!\nERROR: Load Class File function failed. Please try again.\n");
     }
 
-    menu(1, num);
+    prompt(1, num);
 }
 
 /**
@@ -321,7 +418,7 @@ void open(student *p, int *num, int flag)
  * @param p The Pointer to the first of num student structs
  * @param num The number of students in the class
  */
-void cost(int *num)
+void calculateCost(int *num)
 {
     char curr_type[2];
     char num_buffer[6];
@@ -329,6 +426,7 @@ void cost(int *num)
     char dollar = '$';
     // STR00-C: This scenario necessitates the wchar_t type
     wchar_t euro = L'€';
+
     if (*num < 1)
     {
         printf("\nNo student data to calculate. You may enter new, or load existing data.\n");
@@ -345,7 +443,7 @@ void cost(int *num)
         }
 
         int *cost_per = malloc(sizeof(int));
-        printf("\tPlease enter the cost per student: ");
+        printf("\tPlease enter the calculateCost per student: ");
         
         // Print correct currency type
         // STR38-C: wchar_t functions used to print character to stdout
@@ -356,7 +454,7 @@ void cost(int *num)
             putwchar(euro);
         }
 
-        // Get cost-per-student
+        // Get calculateCost-per-student
         if (strlen(fgets(num_buffer, 6, stdin)) == 5 && num_buffer[4] != '\n') {
             while ((c = getchar()) != '\n' && c != EOF);
         }
@@ -385,7 +483,7 @@ void cost(int *num)
         // MEM30-C: Since cost_per is being freed here, it will not be accessed anymore
         free(cost_per);
     }
-    menu(1, num);
+    prompt(1, num);
 }
 
 // MSC41-C: This code to log the last user is erased immediately after the file it is written to is closed, ensuring its security
