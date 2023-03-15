@@ -1,13 +1,15 @@
 /**
  * @author David Salegna, Jonathan Bogue, Noah Conn, Gian Garnica, Derik Schmitz
  * @brief This program manages students in a course. Files can be created, addStudents, downloaded, and loaded
- * @date 2023-03-06
+ * @date 2023-03-15
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <time.h>
+#include <limits.h>
 #define NAME_LENGTH 10
 #define CLASS_CODE_LENGTH 10
 
@@ -464,6 +466,14 @@ void calculateCost(int *num)
             return;
         } 
 
+        // INT32-C: The cost per student and number of students is checked to ensure multiplying them together would not exceed the maximum
+        // integer value, which could cause issues in execution.
+        if (INT_MAX / *cost_per < *num)
+        {
+            printf("\nERROR: Resulting calculation with given input would exceed maximum integer value, smaller values must be used.\n");
+            return;
+        }
+
         // Print results
         if (curr_type[0] == '1') {
             printf("\tTotal Cost: $%d\n", CALCULATE_COST(*cost_per, *num));
@@ -489,11 +499,29 @@ void calculateCost(int *num)
 // MSC41-C: This code to log the last user is erased immediately after the file it is written to is closed, ensuring its security
 // (at least within the application).
 /**
- * @brief
+ * @brief Logs the last user to access the class list to a separate file with a randomized value to ensure uniqueness
  */
 void logUser()
 {
     char code[20];
+    int randGen1;
+    int randGen2;
+    struct timespec systemTime;
+
+    if (timespec_get(&systemTime, TIME_UTC) == 0)
+       printf("\nERROR: Could not acquire system time.\n");
+
+    // MSC30-C: The rand() function is not used to generate a pseudorandom number, srandom() is.
+    // MSC32-C: The srandom() function is properly seeded using the current system time, guaranteeing some degree of randomness.
+    srandom(systemTime.tv_nsec ^ systemTime.tv_sec);
+    randGen1 = random();
+    randGen2 = random() % 100000;
+    
+    // INT33-C: In the unlikely event randGen2 results in 0, there is a simple check performed to ensure no problems arise from it.
+    if (randGen2 == 0)
+        randGen1 %= 100000;
+    else
+        randGen1 %= randGen2;
 
     printf("Enter a unique code that is 20 characters or less to log who last used the system (only admins will have access to that file): ");
     fgets(code, sizeof(code), stdin);
@@ -502,6 +530,7 @@ void logUser()
 
     if (fp)
     {
+        putw(randGen1, fp);
         fwrite(code, sizeof(code), 1, fp);
         fclose(fp);
     }
@@ -509,7 +538,7 @@ void logUser()
 }
 
 /**
- * @brief
+ * @brief Erases the content held within a pointer.
  *
  * @param pointer
  * @return void*
