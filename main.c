@@ -22,6 +22,7 @@ static double student_tax = 27;
 #define CALCULATE_COST(x, y) ((x) * (y))
 
 // PRE10-C: Multistatement Macro definition is wrapped in a do-while loop so it can be used as a single line statement
+// FLP06-C: Similarly here, to avoid truncation, integer operands are converted to the double 'cost_total' before division.
 #define CALCULATE_TAX(x, y)                                       \
     do                                                            \
     {                                                             \
@@ -48,6 +49,8 @@ void calculateCost(int *num);
 void logUser();
 void *erase(void *pointer);
 
+// EXP34-C: The 'data' pointer is never dereferenced in the code when it is NULL.
+// ARR02-C: Array bounds are specified, not implicitly defined by initializers.
 student *data = NULL;
 char category[CLASS_CODE_LENGTH];
 char course_num[CLASS_CODE_LENGTH];
@@ -63,6 +66,7 @@ char organization_name[] = "ISU IT";
 int main()
 {
     // DCL30-C: Declares following variables within execution of program but not outside of it
+    // EXP33-C: Initializes 'num' and 'flag' variables to 0 to prevent garbage values from being read.
     int num = 0;
     int flag = 0;
 
@@ -96,6 +100,10 @@ void prompt(int flag, int *num)
                     before using the whole buffer)
         */
         fgets(num_buffer, 2, stdin);
+        /* EXP45-C: Intentional assignment to 'c' is happening in the following 'while()' loop.
+                    Usually, assignments in selection statements are UNINTENTIONAL.
+                    This is to ensure the input stream is clean after the line is read from the user.
+        */
         while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
         // ERR33-C: The error doesn't need to be checked because it will be caught by the switch
         sscanf(num_buffer, "%d", &choice); // Convert char to integer
@@ -148,6 +156,7 @@ void createClass(student *p, int *num) {
     int len; // Length of the input string
     char c;  // Character used to flush stdin
 
+    // ARR01-C: 'sizeof(char)' is used in part to get the size of the array appropriately instead of a pointer.
     memset(class_buffer, 0, max_len * sizeof(char));
     memset(category, 0, CLASS_CODE_LENGTH * sizeof(char));
     memset(course_num, 0, CLASS_CODE_LENGTH * sizeof(char));
@@ -172,6 +181,7 @@ void createClass(student *p, int *num) {
     int tkn_len = 0;
     int tkn_count = 0;
 
+    //FLP30-C: All 'for()' loops in the code utilize integers, not floats, for loop counters.
     for (int i = 0; token != NULL && i < 3; i++) {
         tkn_count++;
         tkn_len = strlen(token);
@@ -299,6 +309,11 @@ void addStudents(student *p, int *num)
     prompt(1, num);
 }
 
+/**
+ * @brief Outputs the details of the class.
+ *
+ * @param num The number of students in the class
+ */
 void viewClassDetails(int *num) {
     if (*num < 1)
     {
@@ -550,6 +565,9 @@ void *erase(void *pointer)
 
     while (size_to_remove--)
     {
+        /* MSC12-C: Pointer 'p' is dereferenced and set to zero, then incremented properly.
+                    In similar cases, a pointer increment and dereference has no effect, resulting in "dead code."
+        */
         *p++ = 0;
     }
     return pointer;
