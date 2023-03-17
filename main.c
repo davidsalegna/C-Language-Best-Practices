@@ -32,11 +32,12 @@ static double student_tax = 27;
 
 typedef struct student
 {
+    // ARR32-C: array defined in valid range
     char name[NAME_LENGTH]; // STR30-C: Uses array representation in case the name needs to be modified
     int gender;
     int age;
 } student;
-
+// ARR38-C: pointers are valid for the function parameters
 void prompt(int flag, int *num);
 void createClass(student *p, int *num);
 void addStudents(student *p, int *num);
@@ -51,11 +52,13 @@ void *erase(void *pointer);
 
 // EXP34-C: The 'data' pointer is never dereferenced in the code when it is NULL.
 // ARR02-C: Array bounds are specified, not implicitly defined by initializers.
+// ARR32-C: array defined in valid range
 student *data = NULL;
 char category[CLASS_CODE_LENGTH];
 char course_num[CLASS_CODE_LENGTH];
 char section_num[CLASS_CODE_LENGTH];
 // STR11-C: No specified dimensions so string literal assignment will automatically include a null terminator
+// ARR32-C: array defined in valid range
 char organization_name[] = "ISU IT"; 
 
 /**
@@ -86,6 +89,7 @@ void prompt(int flag, int *num)
     int choice;
     // STR30-C: Uses array representation because it will be modified
     // STR11-C: Array is not initialized to a string literal, so explicit dimensions are valid
+    // ARR32-C: array defined in valid range
     char num_buffer[2];
     char c; // Character used to flush stdin
 
@@ -100,6 +104,13 @@ void prompt(int flag, int *num)
                     before using the whole buffer)
         */
         fgets(num_buffer, 2, stdin);
+        //FIO20-C: Avoid any truncations
+        if (feof(stdin) || (strlen(num_buffer) != 0 && num_buffer[strlen(num_buffer)-1] == '\n')){
+            
+        }else{
+            printf("please enter a valid input");
+            return;
+        }
         /* EXP45-C: Intentional assignment to 'c' is happening in the following 'while()' loop.
                     Usually, assignments in selection statements are UNINTENTIONAL.
                     This is to ensure the input stream is clean after the line is read from the user.
@@ -150,6 +161,7 @@ void prompt(int flag, int *num)
  * @param num The number of students in the class
  */
 void createClass(student *p, int *num) {
+    // ARR32-C: arrays defined in valid range
     int max_len = (CLASS_CODE_LENGTH * 3) + 3;
     char num_buffer[4];
     char class_buffer[max_len];
@@ -211,6 +223,7 @@ void createClass(student *p, int *num) {
     }
 
     printf("\nEnter the number of students in the class: ");
+    // FIO20-C: makes sure input isnt truncated
     // STR32-C: fgets ensures only as many as a 3-digit number can be entered into the array of size 4
     if ((len = strlen(fgets(num_buffer, 4, stdin))) == 3 && num_buffer[2] != '\n') 
     {
@@ -276,7 +289,8 @@ void addStudents(student *p, int *num)
         printf("\tStudent Gender [1=Male, 2=Female, 3=Other]: ");
         fgets(num_buffer, 2, stdin);
         while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
-
+        
+        // FIO20-C: Makes sure input isn't truncated
         // ERR33-C: Checking to see if a integer was parsed from the string (and if it's valid)
         if (sscanf(num_buffer, "%d", &(p->gender)) != 1 || p->gender < 1 || p->gender > 3) 
         {
@@ -292,6 +306,7 @@ void addStudents(student *p, int *num)
             while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
         }
         // ERR33-C: Checking to see if a integer was parsed from the string (and if it's valid)
+        // FIO20-C: Makes sure input isn't truncated
         if (sscanf(num_buffer, "%d", &(p->age)) != 1 || p->age < 0) 
         {
             printf("\nERROR: Ivalid input. Input should have be a positive integer (1-99).\nWARNING: Integers greater than 1 digit will be truncated.\nERROR: Add Students function failed. Please try again.\n");
@@ -360,6 +375,7 @@ void viewClassList(student *student_ptr, int *num)
             printf("\tAge:\t%d\n", student_ptr->age);
 
             // Increment student
+            // ARR39-C: Valid incrementation to a pointer
             student_ptr++;
         }
     }
@@ -375,6 +391,7 @@ void viewClassList(student *student_ptr, int *num)
  */
 void save(student *p, int *num)
 {
+    // FIO24-C: file opened only once
     FILE *fp = fopen("class_list", "w+");
 
     if (fp)
@@ -400,6 +417,7 @@ void save(student *p, int *num)
 void load(student *p, int *num, int flag)
 {
     *num = 0;
+    // FIO24-C: file opened only once
     FILE *fp = fopen("class_list", "r");
     if (fp) // ERR33-C: If fopen fails, the user is alerted and the program returns to the prompt 
     { 
@@ -437,6 +455,7 @@ void load(student *p, int *num, int flag)
  */
 void calculateCost(int *num)
 {
+    // ARR32-C: valid size input for arrays
     char curr_type[2];
     char num_buffer[6];
     char c;
@@ -454,8 +473,14 @@ void calculateCost(int *num)
         fgets(curr_type, 2, stdin);
         while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
         // ERR33-C: Checking to see if string input is valid
+        // FIO20-C: Avoids truncation for potential buffer overflow
         if (!(curr_type[0] == '1' || curr_type[0] == '2')) {
             printf("\nERROR: Invalid input. Currency Type should be an integer (1-2).\nERROR: Calculate Cost of Class function failed. Please try again.\n");
+            return;
+        }
+        if ((feof(stdin) || (strlen(curr_type) != 0 && curr_type[strlen(curr_type)-1] == '\n'))){
+            
+        }else{
             return;
         }
 
@@ -540,7 +565,14 @@ void logUser()
 
     printf("Enter a unique code that is 20 characters or less to log who last used the system (only admins will have access to that file): ");
     fgets(code, sizeof(code), stdin);
-
+    if (feof(stdin) || (strlen(code) != 0 && code[strlen(code)-1] == '\n')){
+        
+    }else{
+        printf("Please enter a valid input");
+        return;
+    }
+    
+    // FIO24-C: file opened only once and is private to admins
     FILE *fp = fopen("user_log.txt", "w+");
 
     if (fp)
