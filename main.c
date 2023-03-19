@@ -10,6 +10,7 @@
 #include <wchar.h>
 #include <time.h>
 #include <limits.h>
+#include <math.h>
 #define NAME_LENGTH 10
 #define CLASS_CODE_LENGTH 10
 
@@ -500,7 +501,8 @@ void calculateCost(int *num)
         if (strlen(fgets(num_buffer, 6, stdin)) == 5 && num_buffer[4] != '\n') {
             while ((c = getchar()) != '\n' && c != EOF);
         }
-        if (sscanf(num_buffer, "%d", cost_per) != 1 || *cost_per < 0) 
+        // FLP32-C: Utilizes the isnan() math.h function to ensure cost_per is not a NaN value. This prevents domain/range errors.
+        if (sscanf(num_buffer, "%d", cost_per) != 1 || *cost_per < 0 || isnan((double) *cost_per)) 
         {
             printf("\nERROR: Ivalid input. Input should have been a positive integer.\nWARNING: Integers greater than 5 digits will be truncated.\nERROR: Calculate Cost of Class function failed. Please try again.\n");
             return;
