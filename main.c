@@ -10,8 +10,7 @@
 #include <wchar.h>
 #include <time.h>
 #include <limits.h>
-#include <math.h>
-#define NAME_LENGTH 10
+#define NAME_LENGTH 20
 #define CLASS_CODE_LENGTH 10
 
 // DCL36-C: This static double is declared with static external linkage to be used in a later macro function and cannot change
@@ -100,18 +99,16 @@ void prompt(int flag, int *num)
         choice = -1;
         printf("\t1) Create Class\n\t2) View Class Details\n\t3) View Student List\n\t4) Save Class File\n\t5) Load Class File\n\t6) Calculate Cost of Class\n\t7) Quit\nEnter Option: ");
 
+        /* FIO20-C: Because the input is just a temporary choice and not important data, we limit the
+                    number of digits to one. If a user did put 100, we would treat it as a 1, prioritizing
+                    prevention of buffer overflow over user freedom.
+        */
         /* STR31-C: All uses of fgets use the middle variable to know how many characters to addStudents
                     In all occurences, it is at most the length of the buffer (fgets will stop just 
                     before using the whole buffer)
         */
         fgets(num_buffer, 2, stdin);
-        //FIO20-C: Avoid any truncations
-        if (feof(stdin) || (strlen(num_buffer) != 0 && num_buffer[strlen(num_buffer)-1] == '\n')){
-            
-        }else{
-            printf("please enter a valid input");
-            return;
-        }
+
         /* EXP45-C: Intentional assignment to 'c' is happening in the following 'while()' loop.
                     Usually, assignments in selection statements are UNINTENTIONAL.
                     This is to ensure the input stream is clean after the line is read from the user.
@@ -147,7 +144,7 @@ void prompt(int flag, int *num)
             printf("\nQuitting application...");
             break;
         default:
-            printf("\nERROR: Invalid input. Please enter an integer (1-7).\nWARNING: Integers greater than 1 digit will be truncated.\n");
+            printf("\nERROR: Invalid input. Please enter an integer (1-7).\n");
             break;
         }
         printf("\n");
@@ -233,7 +230,7 @@ void createClass(student *p, int *num) {
     if (sscanf(num_buffer, "%d", num) != 1 || *num < 1) 
     {
         *num = 0;
-        printf("\nERROR: Invalid input. Input must be an integer in range (1-999).\nWARNING: Numbers above this range will be truncated.\nERROR: Add Students function failed. Please try again.\n");
+        printf("\nERROR: Invalid input. Input must be an integer in range (1-999).\nERROR: Add Students function failed. Please try again.\n");
         return;
     }
     init(num);
@@ -295,7 +292,7 @@ void addStudents(student *p, int *num)
         // ERR33-C: Checking to see if a integer was parsed from the string (and if it's valid)
         if (sscanf(num_buffer, "%d", &(p->gender)) != 1 || p->gender < 1 || p->gender > 3) 
         {
-            printf("\nERROR: Ivalid input. Input should be an integer (1-3).\nWARNING: Integers greater than 1 digit will be truncated.\nERROR: Add Students function failed. Please try again.\n");
+            printf("\nERROR: Ivalid input. Input should be an integer (1-3).\nERROR: Add Students function failed. Please try again.\n");
             *num = 0; // Number of students set to zero, making the data unreadable
             read_failed = 1;
             break;
@@ -307,10 +304,9 @@ void addStudents(student *p, int *num)
             while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
         }
         // ERR33-C: Checking to see if a integer was parsed from the string (and if it's valid)
-        // FIO20-C: Makes sure input isn't truncated
         if (sscanf(num_buffer, "%d", &(p->age)) != 1 || p->age < 0) 
         {
-            printf("\nERROR: Ivalid input. Input should have be a positive integer (1-99).\nWARNING: Integers greater than 1 digit will be truncated.\nERROR: Add Students function failed. Please try again.\n");
+            printf("\nERROR: Ivalid input. Input should have be a positive integer (1-99).\nERROR: Add Students function failed. Please try again.\n");
             *num = 0; // Number of students set to zero, making the data unreadable
             read_failed = 1;
             break;
@@ -474,19 +470,13 @@ void calculateCost(int *num)
         fgets(curr_type, 2, stdin);
         while ((c = getchar()) != '\n' && c != EOF); // There's at least one trailing \n
         // ERR33-C: Checking to see if string input is valid
-        // FIO20-C: Avoids truncation for potential buffer overflow
         if (!(curr_type[0] == '1' || curr_type[0] == '2')) {
             printf("\nERROR: Invalid input. Currency Type should be an integer (1-2).\nERROR: Calculate Cost of Class function failed. Please try again.\n");
             return;
         }
-        if ((feof(stdin) || (strlen(curr_type) != 0 && curr_type[strlen(curr_type)-1] == '\n'))){
-            
-        }else{
-            return;
-        }
 
         int *cost_per = malloc(sizeof(int));
-        printf("\tPlease enter the calculateCost per student: ");
+        printf("\tPlease enter the cost per student: ");
         
         // Print correct currency type
         // STR38-C: wchar_t functions used to print character to stdout
@@ -501,10 +491,9 @@ void calculateCost(int *num)
         if (strlen(fgets(num_buffer, 6, stdin)) == 5 && num_buffer[4] != '\n') {
             while ((c = getchar()) != '\n' && c != EOF);
         }
-        // FLP32-C: Utilizes the isnan() math.h function to ensure cost_per is not a NaN value. This prevents domain/range errors.
-        if (sscanf(num_buffer, "%d", cost_per) != 1 || *cost_per < 0 || isnan((double) *cost_per)) 
+        if (sscanf(num_buffer, "%d", cost_per) != 1 || *cost_per < 0) 
         {
-            printf("\nERROR: Ivalid input. Input should have been a positive integer.\nWARNING: Integers greater than 5 digits will be truncated.\nERROR: Calculate Cost of Class function failed. Please try again.\n");
+            printf("\nERROR: Ivalid input. Input should have been a positive integer.\nERROR: Calculate Cost of Class function failed. Please try again.\n");
             return;
         } 
 
@@ -518,13 +507,13 @@ void calculateCost(int *num)
 
         // Print results
         if (curr_type[0] == '1') {
-            printf("\tTotal Cost: $%d\n", CALCULATE_COST(*cost_per, *num));
+            printf("\n\tTotal Cost: $%d\n", CALCULATE_COST(*cost_per, *num));
             printf("\tTotal Cost w/ %.1f%% Tax Rate: $",  student_tax);
             CALCULATE_TAX(*cost_per, *num); // Make call to multi-statement macro to calculate taxes
             printf("\n");
         }
         else if (curr_type[0] == '2') {
-            printf("\tTotal Cost: ");
+            printf("\n\tTotal Cost: ");
             putwchar(euro); // STR38-C: wchar_t functions used to print character to stdout
             printf("%d\n\tTotal Cost w/ %.1f%% Rate: ", CALCULATE_COST(*cost_per, *num), student_tax);
             putwchar(euro); // STR38-C: wchar_t functions used to print character to stdout
